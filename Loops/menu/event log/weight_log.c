@@ -34,7 +34,7 @@ void weight_log_loop(){
 	/* Initialize touch */
 	TS_StateTypeDef TS_State;
 
-	/* Build needed components for this page */
+	/* Build needed buttons for this page */
 	struct button back_btn = new_button(3,213,55,55);
 
 	/* Draw background image */
@@ -44,8 +44,9 @@ void weight_log_loop(){
 		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
 
-		/* If touch is detected, get x and y values of touch */
+		/* If touch is detected */
 		if (TS_State.touchDetected) {
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
 			/* If the back button is pressed, go back to event log menu */

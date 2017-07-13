@@ -65,9 +65,10 @@ void weight_loop() {
 	while (1) {
 		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
-
-		/* If touch is detected, save x and y values of touch */
+		draw_time();
+		/* If touch is detected */
 		if (TS_State.touchDetected) {
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
 			/* If home button is pressed, go to home page */

@@ -14,6 +14,7 @@
 /* Variables */
  char correct_pin[4] = "1234";		/* correct pin value				*/
  char user_pin[4]= "";				/* user pin value, empty at start	*/
+ int num;
 
 /*Function Definitions */
 /************************************************************************************************/
@@ -55,7 +56,7 @@ void pin_loop()
 	 /* Initialize touch */
 	 TS_StateTypeDef TS_State;
 
-	 /* Draw background bitmap */
+	 /* Draw background image */
 	 draw(0,0,buffer,transparency,5);
 
 	 /* Create next and back buttons */
@@ -66,7 +67,7 @@ void pin_loop()
 	 struct button btn1 = new_button(282,10,55,55);
 	 struct button btn4 = new_button(282,77,55,55);
 	 struct button btn7 = new_button(282,143,55,55);
-	 //struct button btnp = new_button(282,209,55,55);
+	 struct button btnp = new_button(282,209,55,55);
 
 	 /* Create middle pin pad buttons */
 	 struct button btn2 = new_button(350,10,55,55);
@@ -80,10 +81,24 @@ void pin_loop()
 	 struct button btn9 = new_button(418,143,55,55);
 	 struct button btnc = new_button(418,209,55,55);
 
- 	 /* Current index of pin value, initialized to 0	*/
+	 struct numpad pinpad = numpad_create(
+		&btn0,
+	 	&btn1,
+	 	&btn2,
+	 	&btn3,
+	 	&btn4,
+	 	&btn5,
+	 	&btn6,
+	 	&btn7,
+	 	&btn8,
+	 	&btn9,
+	 	&btnp,
+	 	&btnc
+	 );
+
+ 	 /* Working index of pin, initialized to 0	*/
  	 uint8_t index = 0;
 
-	/* Endless loop */
 	while (1) {
 		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
@@ -111,68 +126,24 @@ void pin_loop()
 					return;
 				}
 			}
-			/* If a number button is pressed, and less than 4 digits have been entered for the pin,
-			 * enter that number as a digit for the pin at the current index, then increment the index */
-			else if(is_within_bounds(user_x, user_y, btn1.x , btn1.y, btn1.width, btn1.height)&&index <4){
-				user_pin[index] = '1';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn2.x , btn2.y, btn2.width, btn2.height)&&index <4){
-				user_pin[index] = '2';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn3.x , btn3.y, btn3.width, btn3.height)&&index <4){
-				user_pin[index] = '3';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn4.x , btn4.y, btn4.width, btn4.height)&&index <4){
-				user_pin[index] = '4';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn5.x , btn5.y, btn5.width, btn5.height)&&index <4){
-				user_pin[index] = '5';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn6.x , btn6.y, btn6.width, btn6.height)&&index <4){
-				user_pin[index] = '6';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn7.x , btn7.y, btn7.width, btn7.height)&&index <4){
-				user_pin[index] = '7';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn8.x , btn8.y, btn8.width, btn8.height)&&index <4){
-				user_pin[index] = '8';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn9.x , btn9.y, btn9.width, btn9.height)&&index <4){
-				user_pin[index] = '9';
-				index++;
-				HAL_Delay(200);
-			}
-			else if(is_within_bounds(user_x, user_y, btn0.x , btn0.y, btn0.width, btn0.height)&&index <4){
-				user_pin[index] = '0';
-				index++;
-				HAL_Delay(200);
-			}
-			/* If the clear button is pressed, clear the pin screen and reset the pin value */
-			else if(is_within_bounds(user_x,user_y,btnc.x,btnc.y,btnc.width,btnc.height)){
-				draw(0,0,buffer,transparency,5);
-				index = 0;
-			}
+
 			/* If the back button is pressed, reset the pin value and go back to the home page */
 			else if (is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				index = 0;
 				handle_page_loop = home_screen_loop;
 				return;
+			}
+			/* If the clear button is pressed, clear the pin screen and reset the pin value */
+			else if(numpad_poll_clr(pinpad, user_x, user_y)){
+				draw(0,0,buffer,transparency,5);
+				index = 0;
+			}
+			/* If a number button is pressed, and less than 4 digits have been entered for the pin,
+			* enter that number as a digit for the pin at the current index, then increment the index */
+			else if(numpad_poll_num(pinpad,user_x,user_y,&num)&&index<4){
+					user_pin[index] = num+48;
+					index++;
+					HAL_Delay(200);
 			}
 		}
 		/* If nothing is pressed */

@@ -25,9 +25,9 @@ void config()
 	  BSP_LCD_DisplayStringAt(0, LINE(5), (uint8_t *) "TOUCHSCREEN DEMO", CENTER_MODE);
 	  BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
 	  HAL_Delay(1000);
+	  clockInit();
 	  gui_setup();
 }
-
 
 
 /**
@@ -39,8 +39,6 @@ void config()
 {
   /* LCD Initialization */
   BSP_LCD_Init();
-
-  /* LCD Initialization */
   BSP_LCD_LayerDefaultInit(0, LCD_FB_START_ADDRESS);
   BSP_LCD_LayerDefaultInit(1, LCD_FB_START_ADDRESS+(BSP_LCD_GetXSize()*BSP_LCD_GetYSize()*4));
 

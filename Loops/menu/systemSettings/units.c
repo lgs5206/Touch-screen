@@ -23,7 +23,10 @@ void (*handle_page_loop)(void);
 
 
 /**
-  * @brief  Units loop
+  * @brief  Units page. Displays the currently selected unit for weight.
+  * 		User can select kilograms or pounds. User can then press next to save
+  * 		the choice, or press back to go back to the system settings page
+  * 		without saving.
   * @param	None
   * @retval None
   */
@@ -32,7 +35,7 @@ void units_loop(){
 	/* Initialize touch */
 	TS_StateTypeDef TS_State;
 
-	/* Build needed components for this page */
+	/* Build needed buttons for this page */
 	struct button back_btn = new_button(8,213,55,55);
 
 	/* Draw background image */
@@ -44,9 +47,10 @@ void units_loop(){
 
 		/* If touch is detected */
 		if (TS_State.touchDetected) {
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
-			/* If the back button is pressed, re-initialize the pin value and go back to the main menu */
+			/* If the back button is pressed, don't save and go back to system settings page */
 			if (is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				handle_page_loop = system_settings_loop;
 				return;

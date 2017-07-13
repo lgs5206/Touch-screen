@@ -23,7 +23,10 @@ void (*handle_page_loop)(void);
 
 
 /**
-  * @brief  Weight held loop
+  * @brief  Weight held page. Holds the weight constant so changes can be made to the bed or
+  * 		patient without effecting the weight. When done, the user can press next to
+  * 		reset the weighing surface and go to the weight page, or can press back to go
+  * 		back to the weight page without saving the changes.
   * @param	None
   * @retval None
   */
@@ -32,7 +35,7 @@ void weight_held_loop() {
 	/* Initialize touch */
 	TS_StateTypeDef TS_State;
 
-	/* Build needed components for this page */
+	/* Build needed buttons for this page */
 	 struct button next_btn = new_button(420,213,55,55);
 	 struct button back_btn = new_button(3,213,55,55);
 
@@ -45,9 +48,10 @@ void weight_held_loop() {
 
 		/* If touch is detected */
 		if (TS_State.touchDetected) {
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
-			/* If the back button is pressed, re-initialize the pin value and go back to the main menu */
+			/* If the back button is pressed, go back to weight page */
 			if (is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				handle_page_loop = weight_loop;
 				return;

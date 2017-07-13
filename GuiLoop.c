@@ -34,7 +34,7 @@ void (*handle_page_loop)(void);
   * @param 	obj_y: 		Y value of upper left corner of object
   * @param	obj_width: 	Width of object
   * @param 	obj_height: Height of object
-  * @retval Result of boolean expression. True if user's touch is within bounds of object
+  * @retval Result of boolean expression. True if user's touch is within bounds of the button
   */
 char is_within_bounds(uint16_t user_x,uint16_t user_y,uint16_t obj_x,uint16_t obj_y,uint16_t obj_width,uint16_t obj_height){
 

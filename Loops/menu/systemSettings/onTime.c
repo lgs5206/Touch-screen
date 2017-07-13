@@ -46,8 +46,9 @@ void on_time_loop(){
 		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
 
-		/* If touch is detected, get x and y values of touch */
+		/* If touch is detected */
 		if (TS_State.touchDetected) {
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
 			/* If the back button is pressed, don't save changes and go back to system settings page */

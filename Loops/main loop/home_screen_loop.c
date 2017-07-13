@@ -9,11 +9,14 @@
 #include "main.h"
 #include "header.h"
 #include "buttons.h"
+#include "clock.h"
 #include <stdbool.h>
 
 /* Variables */
 bool alarm_on = true;		/* Alarm is set to on by default */
 bool light_on = true; 		/* Light is set to on by default */
+RTC_TimeTypeDef RTC_time;
+RTC_DateTypeDef RTC_date;
 
 /*Function Definitions*/
 /************************************************************************************************/
@@ -40,6 +43,7 @@ void home_screen_loop() {
 	/* Draw background image */
 	draw(0,0,buffer,transparency,0);
 
+
 	/* Draw alarm icon on or off */
 	if(get_alarm_status()){
 		draw(10,201,buffer,transparency,11);
@@ -56,12 +60,17 @@ void home_screen_loop() {
 		draw(337,208,buffer,transparency,1);
 	}
 
+
 	/* Build needed buttons for this page */
 	struct button menu_btn = new_button(410,211,55,55);
 	struct button alarm_btn = new_button(13,211,55,55);
 	struct button light_btn = new_button(337,211,55,55);
 
+	//clock_SetTime(&RTC_time,0,6,4);
+	//clock_SetDate(&RTC_date,6, 15, 12);
+
 	while(1){
+		draw_time();
 		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
 		/* If touch is detected */

@@ -23,7 +23,10 @@ void (*handle_page_loop)(void);
 
 
 /**
-  * @brief  Zero weight loop
+  * @brief  Zero weight page. Displays a weight of 0 and a delta weight of 0.
+  * 		From here the user can turn the bed alarm on/off, turn the bed
+  * 		light on/off, go to the hold weight page, zero the scale, or go
+  * 		to the menu page.
   * @param	None
   * @retval None
   */
@@ -32,15 +35,18 @@ void zero_weight_loop() {
 	/* Initialize touch */
 	TS_StateTypeDef TS_State;
 
-	/* Build needed components for this page */
+	/* Build needed buttons for this page */
 	struct button home_btn = new_button(0,0,60,55);
 	struct button pause_btn = new_button(345,35,110,65);
 	struct button zero_btn = new_button(345,113,110,65);
 	struct button menu_btn = new_button(411,211,55,55);
 
-
 	/* Draw background image */
 	draw(0,0,buffer,transparency,26);
+
+	/* Set bed alarm to off */
+	alarm_on = false;
+
 	/* Draw alarm icon on or off */
 	if(get_alarm_status()){
 		draw(10,201,buffer,transparency,11);
@@ -59,9 +65,10 @@ void zero_weight_loop() {
 	while (1) {
 		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
-
+		draw_time();
 		/* If touch is detected */
 		if (TS_State.touchDetected) {
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
 
@@ -70,7 +77,7 @@ void zero_weight_loop() {
 				handle_page_loop = home_screen_loop;
 				return;
 			}
-			/* If pause button is pressed, go to pause screen */
+			/* If hold button is pressed, go to hold weight screen */
 			else if(is_within_bounds(user_x,user_y,pause_btn.x,pause_btn.y,pause_btn.width,pause_btn.height)){
 				handle_page_loop = hold_weight_loop;
 				return;
@@ -82,7 +89,7 @@ void zero_weight_loop() {
 				handle_page_loop = weight_zeroed_loop;
 				return;
 			}
-			/* If menu button is pressed, go back to menu page */
+			/* If menu button is pressed, go to menu page */
 			else if(is_within_bounds(user_x,user_y,menu_btn.x,menu_btn.y,menu_btn.width,menu_btn.height)){
 				handle_page_loop = menu_page_loop;
 				return;

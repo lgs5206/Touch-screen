@@ -120,11 +120,11 @@ void initialize_buttons(){
 	/* Build needed buttons for this page 		*/
 	next_btn 		= new_button(213,213,55,55);
 	back_btn 		= new_button(8,213,55,55);
-	month_block 	= new_button(19,61,62,40);
-	day_block 		= new_button(85,60,65,40);
-	year_block 		= new_button(155,60,103,40);
-	hour_block 		= new_button(17,135,65,40);
-	minute_block	= new_button(97,135,65,40);
+	month_block 	= new_button(20,62,58,38);
+	day_block 		= new_button(88,62,60,38);
+	year_block 		= new_button(155,62,103,38);
+	hour_block 		= new_button(20,137,58,38);
+	minute_block	= new_button(99,137,60,38);
 
 	/* Create left pin pad buttons 				*/
 	btn1 			= new_button(282,10,55,55);
@@ -195,31 +195,37 @@ void update_time(){
  */
 void draw_date_time(){
 
+	/* Get current time and date from RTC */
 	clock_GetTime(&RTC_time);
 	clock_GetDate(&RTC_date);
 
+	/* Save each part of time as an integer */
 	minutes = RTC_time.Minutes;
 	hours = RTC_time.Hours;
-
-	sprintf(min,"%02d",minutes);
-	sprintf(hr,"%02d",hours);
-
-
 	day = RTC_date.Date;
 	month = RTC_date.Month;
 	year = RTC_date.Year;
 
+	/* Convert and format each integer into a character array */
+	sprintf(min,"%02d",minutes);
+	sprintf(hr,"%02d",hours);
 	sprintf(dy,"%02d",day);
 	sprintf(mon,"%02d",month);
 	sprintf(yr,"%02d",year);
+
+	/* The full 4-digit year value cannot be saved as a uint8_t
+	 * '20' is appended to the front of the 2-digit year. Only
+	 * years between 2000 and 2099 will be accepted */
 	strcpy(year_full,"20");
 	strcat(year_full,yr);
 
 
-	/* Draw background image */
+	/* Draw background image and set the font and color*/
 	draw(0,0,buffer,transparency,21);
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+
+	/* Display each part of time in the correct location on the screen */
 	BSP_LCD_DisplayStringAt(35,70,(uint8_t *)mon,LEFT_MODE);
 	BSP_LCD_DisplayStringAt(105,70,(uint8_t *)dy,LEFT_MODE);
 	BSP_LCD_DisplayStringAt(178,70,(uint8_t *)year_full,LEFT_MODE);
@@ -238,11 +244,9 @@ void draw_date_time(){
   */
 void time_date_loop(){
 
-	/* Initialize touch */
+	/* Initialize touch and buttons, then display the current time and date */
 	TS_StateTypeDef TS_State;
-
 	initialize_buttons();
-
 	draw_date_time();
 
 	while (1) {
@@ -254,7 +258,8 @@ void time_date_loop(){
 			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
-			/* If the back button is pressed, re-initialize the pin value and go back to the main menu */
+
+			/* If the back button is pressed, don't save any changes, then go back to the menu */
 			if (is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
 				BSP_LCD_DisplayStringAtLine(5,(uint8_t *)"Nothing was changed");
@@ -262,27 +267,39 @@ void time_date_loop(){
 				handle_page_loop = system_settings_loop;
 				return;
 			}
+
 			/* If the month block is selected, user can input value for month */
 			else if(is_within_bounds(user_x,user_y,month_block.x,month_block.y,month_block.width,month_block.height)){
 				month_change_loop();
 				return;
 			}
+
+			/* If the day block is selected, user can input value for day */
 			else if(is_within_bounds(user_x,user_y,day_block.x,day_block.y,day_block.width,day_block.height)){
 				day_change_loop();
 				return;
 			}
+
+			/* If the year block is selected, user can input value for year */
 			else if(is_within_bounds(user_x,user_y,year_block.x,year_block.y,year_block.width,year_block.height)){
 				year_change_loop();
 				return;
 			}
+
+			/* If the minute block is selected, user can input value for minute */
 			else if(is_within_bounds(user_x,user_y,minute_block.x,minute_block.y,minute_block.width,minute_block.height)){
 				minute_change_loop();
 				return;
 			}
+
+			/* If the hour block is selected, user can input value for hour */
 			else if(is_within_bounds(user_x,user_y,hour_block.x,hour_block.y,hour_block.width,hour_block.height)){
-							hour_change_loop();
-							return;
-						}
+				hour_change_loop();
+				return;
+			}
+
+			/* If the next button is pressed when the date or time has not been changed,
+			 * warn the user that nothing was changed, then go back to the menu */
 			else if(is_within_bounds(user_x,user_y,next_btn.x,next_btn.y,next_btn.width,next_btn.height)){
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
 				BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -295,34 +312,50 @@ void time_date_loop(){
 	}
 }
 
+/**
+ * @brief	Allows user to edit the day of the RTC date
+ * @param	None
+ * @retval	None
+ */
 void day_change_loop(){
 
-	/* Initialize touch */
+	/* Initialize touch and buttons for the screen */
 	TS_StateTypeDef TS_State;
-
 	initialize_buttons();
 
+	/* Set the index and accumulator to zero.
+	 * Set day_block.selected to true, and all other button blocks to false */
 	accum = 0;
 	day_index = 0;
 	day_block.selected = true;
 	month_block.selected = year_block.selected = hour_block.selected = minute_block.selected = false;
+
+	/* Set the font then clear the text over the day block to show that it's selected */
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	draw_button(day_block,true);
+
+	/* While the day block is selected */
 	while(day_block.selected){
+
+		/* Get status of touch screen */
 		BSP_TS_GetState(&TS_State);
 
+		/* If touch is detected */
 		if(TS_State.touchDetected){
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
-			/* If clear button is pressed, clear the day block, reset the month_index and accumulator */
+			/* If clear button is pressed, clear the day block, reset the day_index and accumulator */
 			if(numpad_poll_clr(pinpad, user_x, user_y)){
 				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 				draw_button(day_block,true);
 				day_index = 0;
 				accum = 0;
 			}
-			/* If a number button is pressed, store the integer value, update the accumulator, and increment the index. */
+
+			/* If a number button is pressed store the integer value, display the
+			 * value on the screen, then increment the index and update the accumulator */
 			if(numpad_poll_num(pinpad,user_x,user_y,&num) && day_index<2){
 				HAL_Delay(150);
 				if(day_index == 0){
@@ -341,16 +374,22 @@ void day_change_loop(){
 				accum = (day_val_tens*10 + day_val_ones);
 
 			}
-			/* If the month block is selected, save new_day in storage and enter month_change block */
+
+			/* If the month block is pressed while the day block is selected,
+			 * save new_day in storage and enter month_change loop */
 			else if(is_within_bounds(user_x,user_y,month_block.x,month_block.y,month_block.width,month_block.height)){
 
+				/* If accumulator is 0, that means nothing has been edited so
+				 * go to the month change loop without saving anything */
 				if(accum == 0){
 					day_index = 0;
 					day_changed = false;
 					draw_date_time();
 					month_change_loop();
-
 				}
+
+				/* If the day inputed by the user is greater than 31, tell the
+				 * user it is an invalid day value and don't save that value */
 				else if(!(accum<32)){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -362,12 +401,17 @@ void day_change_loop(){
 					return;
 				}
 
+				/* If the day inputed by the user is a valid number,
+				 * save that day then enter the month loop */
 				else{
 					new_day = accum;
 					day_changed = true;
 					month_change_loop();
 				}
 			}
+
+			/* If the year block is pressed while the day block is selected,
+			 * save new_day in storage and enter year_change loop */
 			else if(is_within_bounds(user_x,user_y,year_block.x,year_block.y,year_block.width,year_block.height)){
 
 				if(accum == 0){
@@ -376,6 +420,7 @@ void day_change_loop(){
 					draw_date_time();
 					year_change_loop();
 				}
+
 				else if(!(accum<32)){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -394,6 +439,8 @@ void day_change_loop(){
 				}
 			}
 
+			/* If the hour block is pressed while the day block is selected,
+			 * save new_day in storage and enter hour_change loop */
 			else if(is_within_bounds(user_x,user_y,hour_block.x,hour_block.y,hour_block.width,hour_block.height)){
 				if(accum == 0){
 					day_changed = false;
@@ -401,6 +448,7 @@ void day_change_loop(){
 					draw_date_time();
 					hour_change_loop();
 				}
+
 				else if(!(accum<32)){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -412,6 +460,7 @@ void day_change_loop(){
 					draw_date_time();
 					return;
 				}
+
 				else{
 					new_day = accum;
 					day_changed = true;
@@ -419,6 +468,8 @@ void day_change_loop(){
 				}
 			}
 
+			/* If the minute block is pressed while the day block is selected,
+			 * save new_day in storage and enter minute_change loop */
 			else if(is_within_bounds(user_x,user_y,minute_block.x,minute_block.y,minute_block.width,minute_block.height)){
 
 				if(accum ==0){
@@ -445,6 +496,10 @@ void day_change_loop(){
 				}
 			}
 
+			/* If the next button is pressed while the day block is selected,
+			 * check if the value inputed is valid. If it is, save it and update
+			 * the time, then go back to the system settings page. Otherwise,
+			 * tell the user it is an invalid day value and don't save it. */
 			if(is_within_bounds(user_x,user_y,next_btn.x,next_btn.y,next_btn.width,next_btn.height)){
 				if(!((0<accum)&&(accum<32))){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -470,6 +525,9 @@ void day_change_loop(){
 				}
 			day_block.selected = false;
 			}
+
+			/* If the back button is pressed, go back to system
+			 * settings page without saving any changes made. */
 			if(is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				day_block.selected = false;
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -483,28 +541,40 @@ void day_change_loop(){
 	}
 }
 
-
+/**
+ * @brief	Allows user to edit the month of the RTC date
+ * @param	None
+ * @retval	None
+ */
 void month_change_loop(){
 
-	/* Initialize touch */
+	/* Initialize touch and buttons that will be used on the screen */
 	TS_StateTypeDef TS_State;
-
 	initialize_buttons();
 
+	/* Set the index and accumulator to zero.
+	 * Set month_block.selected to true, and all other button blocks to false */
 	month_block.selected = true;
 	day_block.selected = year_block.selected = hour_block.selected = minute_block.selected = false;
 	accum = 0;
 	month_index = 0;
 
+	/* Set the font then clear the text over the day block to show that it's selected */
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	draw_button(month_block,true);
 
+	/* While the month block is selected */
 	while(month_block.selected){
+
+		/* Get status of touch */
 		BSP_TS_GetState(&TS_State);
 		if(TS_State.touchDetected){
+
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
+
 			/* If clear button is pressed, clear the month block, reset the month_index and accumulator */
 			if(numpad_poll_clr(pinpad, user_x, user_y)){
 				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
@@ -512,7 +582,8 @@ void month_change_loop(){
 				month_index = 0;
 				accum = 0;
 			}
-			/* If a number button is pressed, store the integer value, update the accumulator, and increment the index. */
+			/* If a number button is pressed, store and display the integer
+			 * value, update the accumulator, and increment the index. */
 			if(numpad_poll_num(pinpad,user_x,user_y,&num)&&month_index<2){
 				HAL_Delay(150);
 				if(month_index == 0){
@@ -531,6 +602,11 @@ void month_change_loop(){
 				accum = (month_val_tens*10 + month_val_ones);
 
 			}
+
+			/* If the next button is pressed while the month block is selected,
+			 * check if the value inputed is valid. If it is, save it and update
+			 * the time, then go back to the system settings page. Otherwise,
+			 * tell the user it is an invalid day value and don't save it. */
 			if(is_within_bounds(user_x,user_y,next_btn.x,next_btn.y,next_btn.width,next_btn.height)){
 				if(!((0<accum)&&(accum<13))){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -556,15 +632,20 @@ void month_change_loop(){
 					return;
 				}
 			}
-			/* If the day block is selected, save new_month in storage and enter day_change block */
+			/* If the day block is pressed while the month block is selected,
+			 * save new_month in storage and enter day_change block */
 			else if(is_within_bounds(user_x,user_y,day_block.x,day_block.y,day_block.width,day_block.height)){
 
+				/* If accumulator is 0, that means nothing has been edited so
+				 * go to the month change loop without saving anything */
 				if(accum == 0){
 					month_index = 0;
 					month_changed = false;
 					draw_date_time();
 					day_change_loop();
 				}
+				/* If the month inputed by the user is greater than 12, tell the
+				 * user it is an invalid month value and don't save that value */
 				else if(!(accum<13)){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -576,6 +657,8 @@ void month_change_loop(){
 					return;
 				}
 
+				/* If the month entered is valid, save that
+				 * value and enter the day change loop */
 				else{
 					new_month = accum;
 					month_changed = true;
@@ -583,6 +666,8 @@ void month_change_loop(){
 				}
 			}
 
+			/* If the hour block is pressed while the month block is selected,
+			 * save new_month in storage and enter hour_change loop */
 			else if(is_within_bounds(user_x,user_y,hour_block.x,hour_block.y,hour_block.width,hour_block.height)){
 				if(accum == 0){
 					month_changed = false;
@@ -607,6 +692,9 @@ void month_change_loop(){
 					hour_change_loop();
 				}
 			}
+
+			/* If the year block is pressed while the month block is selected,
+			 * save new_month in storage and enter year_change loop */
 			else if(is_within_bounds(user_x,user_y,year_block.x,year_block.y,year_block.width,year_block.height)){
 
 				if(accum == 0){
@@ -633,7 +721,8 @@ void month_change_loop(){
 				}
 			}
 
-
+			/* If the minute block is pressed while the month block is selected,
+			 * save new_month in storage and enter minute_change loop */
 			else if(is_within_bounds(user_x,user_y,minute_block.x,minute_block.y,minute_block.width,minute_block.height)){
 
 				if(accum == 0){
@@ -660,6 +749,8 @@ void month_change_loop(){
 				}
 			}
 
+			/* If the back button is pressed, go back to system
+			 * settings page without saving any changes made. */
 			if(is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				day_block.selected = false;
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -673,36 +764,51 @@ void month_change_loop(){
 	}
 }
 
-
+/**
+ * @brief	Allows user to edit the day of the RTC date
+ * @param	None
+ * @retval	None
+ */
 void year_change_loop(){
 
-    /* Initialize touch */
+    /* Initialize touch and buttons that will be used on the screen*/
     TS_StateTypeDef TS_State;
-
     initialize_buttons();
 
+    /* Set the accumulator and year index to 0. Set year_block.selected to true,
+     * and all other blocks.selected to false.  */
     accum = 0;
     year_index = 0;
     year_block.selected = true;
     month_block.selected = day_block.selected = hour_block.selected = minute_block.selected = false;
 
+    /* Set the font and clear the text from the year block to
+     * show that it is currently selected */
     BSP_LCD_SetFont(&Font24);
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
     draw_button(year_block,true);
 
+    /* While the year block is selected */
     while(year_block.selected){
-        BSP_TS_GetState(&TS_State);
 
+    	/* Get status of touch */
+        BSP_TS_GetState(&TS_State);
         if(TS_State.touchDetected){
+        	/* Get x and y values of touch */
             uint16_t user_x = TS_State.touchX[0];
             uint16_t user_y = TS_State.touchY[0];
 
+            /* If clear button is pressed, clear the year block
+             * then reset the month_index and accumulator */
             if(numpad_poll_clr(pinpad, user_x, user_y)){
                 BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
                 draw_button(year_block,true);
                 year_index = 0;
                 accum = 0;
             }
+
+			/* If a number button is pressed, store and display the integer
+			 * value, update the accumulator, and increment the index. */
             if(numpad_poll_num(pinpad,user_x,user_y,&num) && year_index < 4){
                 HAL_Delay(200);
                 if(year_index == 0){
@@ -734,14 +840,22 @@ void year_change_loop(){
                 year_check = (year_val_thous*1000 + year_val_hunds*100+accum);
             }
 
+			/* If the month block is pressed while the year block is selected,
+			 * save new_year in storage and enter month_change loop */
             else if(is_within_bounds(user_x,user_y,month_block.x,month_block.y,month_block.width,month_block.height)){
 
+				/* If accumulator is 0, that means nothing has been edited so
+				 * go to the month change loop without saving anything */
             	if(accum == 0){
 					year_index = 0;
 					year_changed = false;
 					draw_date_time();
 					month_change_loop();
 				}
+
+				/* If the year inputed by the user is less than 200 or greater
+				 * than 2099, tell the user it is an invalid year value and
+				 * don't save that value */
             	else if(!((1999<year_check)&&(year_check<2100))){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -755,12 +869,17 @@ void year_change_loop(){
 
 				}
 
+            	/* If the year inputed by the user is valid, save and
+            	 * display that value, then go to the month loop */
 				else{
 					new_year = accum;
 					year_changed = true;
 					month_change_loop();
 				}
             }
+
+			/* If the day block is pressed while the year block is selected,
+			 * save new_year in storage and enter day_change loop */
             else if(is_within_bounds(user_x,user_y,day_block.x,day_block.y,day_block.width,day_block.height)){
 
 				if(accum == 0){
@@ -787,6 +906,9 @@ void year_change_loop(){
 					day_change_loop();
 				}
 			}
+
+			/* If the minute block is pressed while the year block is selected,
+			 * save new_year in storage and enter minute_change loop */
 			else if(is_within_bounds(user_x,user_y,minute_block.x,minute_block.y,minute_block.width,minute_block.height)){
 
 				if(accum == 0){
@@ -814,6 +936,8 @@ void year_change_loop(){
 				}
 			}
 
+			/* If the hour block is pressed while the year block is selected,
+			 * save new_year in storage and enter hour_change loop */
 			else if(is_within_bounds(user_x,user_y,hour_block.x,hour_block.y,hour_block.width,hour_block.height)){
 				if(accum == 0){
 					year_changed = false;
@@ -839,6 +963,10 @@ void year_change_loop(){
 				}
 			}
 
+			/* If the next button is pressed while the year block is selected,
+			 * check if the value inputed is valid. If it is, save it and update
+			 * the time, then go back to the system settings page. Otherwise,
+			 * tell the user it is an invalid day value and don't save it. */
             if(is_within_bounds(user_x,user_y,next_btn.x,next_btn.y,next_btn.width,next_btn.height)){
 				if(!((1999<year_check)&&(year_check<2100))){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -865,6 +993,9 @@ void year_change_loop(){
 				}
 			year_block.selected = false;
 			}
+
+            /* If the back button is pressed, go back to the system
+             * settings loop without saving any changes */
             if(is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				year_block.selected = false;
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -878,34 +1009,50 @@ void year_change_loop(){
     }
 }
 
+/**
+ * @brief	Allows user to edit the day of the RTC date
+ * @param	None
+ * @retval	None
+ */
 void minute_change_loop(){
 
-	/* Initialize touch */
+	/* Initialize touch and buttons for the screen*/
 	TS_StateTypeDef TS_State;
-
 	initialize_buttons();
 
+	/* Set the accumulator and minute index to 0. Set minute_block.selected
+	 * to true, and all other blocks.selected to false */
 	accum = 0;
 	minute_index = 0;
 	minute_block.selected = true;
 	month_block.selected = year_block.selected = hour_block.selected = day_block.selected = false;
+
+	/* Set the font, and clear the text from the minute block
+	 * to show that the block is currently selected */
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	draw_button(minute_block,true);
-	while(minute_block.selected){
-		BSP_TS_GetState(&TS_State);
 
+	/* While the minute block is selected */
+	while(minute_block.selected){
+
+		/* Get status of touch */
+		BSP_TS_GetState(&TS_State);
 		if(TS_State.touchDetected){
+
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
-			/* If clear button is pressed, clear the minute block, reset the month_index and accumulator */
+
+			/* If clear button is pressed, clear the block, reset the minute index and accumulator */
 			if(numpad_poll_clr(pinpad, user_x, user_y)){
 				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 				draw_button(minute_block,true);
 				minute_index = 0;
 				accum = 0;
 			}
-			/* If a number button is pressed, store the integer value, update the accumulator, and increment the index. */
+			/* If a number button is pressed, store and display the integer
+			 * value, then update the accumulator and increment the index. */
 			if(numpad_poll_num(pinpad,user_x,user_y,&num) && minute_index<2){
 				HAL_Delay(150);
 				if(minute_index == 0){
@@ -915,7 +1062,6 @@ void minute_change_loop(){
 					BSP_LCD_DisplayStringAt(112,145,(uint8_t *)minute_buff,LEFT_MODE);
 				}
 				else if(minute_index == 1){
-					/* Save the value of the number pressed into the ten's place of the minute value */
 					minute_val_ones = num;
 					sprintf(minute_buff,"%i",num);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -925,9 +1071,12 @@ void minute_change_loop(){
 				accum = (minute_val_tens*10 + minute_val_ones);
 
 			}
-			/* If the month block is selected, save new_minute in storage and enter month_change block */
+			/* If the month block is pressed while the minute block is selected,
+			 * save new_minute in storage and enter month_change loop */
 			else if(is_within_bounds(user_x,user_y,month_block.x,month_block.y,month_block.width,month_block.height)){
 
+				/* If accumulator is 0, that means nothing has been edited so
+				 * go to the month change loop without saving anything */
 				if(accum == 0){
 					minute_changed = false;
 					minute_index = 0;
@@ -935,6 +1084,8 @@ void minute_change_loop(){
 					month_change_loop();
 				}
 
+				/* If the minute inputed by the user is greater than 59, tell the
+				 * user it is an invalid minute value and don't save that value */
 				else if(!(accum<60)){
 						BSP_LCD_Clear(LCD_COLOR_WHITE);
 						BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -946,15 +1097,20 @@ void minute_change_loop(){
 						draw_date_time();
 						return;
 
-					}
+				}
+
+				/* If the minute inputed is valid, save and display that
+				 * number, then enter the month change loop */
 				else{
 					new_minute = accum;
 					minute_changed = true;
 					month_change_loop();
 				}
 			}
-
+			/* If the hour block is pressed while the minute block is selected,
+			 * save new_minute in storage and enter hour_change loop */
 			else if(is_within_bounds(user_x,user_y,hour_block.x,hour_block.y,hour_block.width,hour_block.height)){
+
 				if(accum == 0){
 					minute_changed = false;
 					minute_index = 0;
@@ -978,6 +1134,8 @@ void minute_change_loop(){
 					hour_change_loop();
 				}
 			}
+			/* If the year block is pressed while the minute block is selected,
+			 * save new_minute in storage and enter year_change loop */
 			else if(is_within_bounds(user_x,user_y,year_block.x,year_block.y,year_block.width,year_block.height)){
 
 				if(accum == 0){
@@ -1006,6 +1164,9 @@ void minute_change_loop(){
 					year_change_loop();
 				}
 			}
+
+			/* If the day block is pressed while the minute block is selected,
+			 * save new_minute in storage and enter day_change loop */
             else if(is_within_bounds(user_x,user_y,day_block.x,day_block.y,day_block.width,day_block.height)){
 
 				if(accum == 0){
@@ -1034,6 +1195,11 @@ void minute_change_loop(){
 					day_change_loop();
 				}
 			}
+
+			/* If the next button is pressed while the minute block is selected,
+			 * check if the value inputed is valid. If it is, save it and update
+			 * the time, then go back to the system settings page. Otherwise,
+			 * tell the user it is an invalid day value and don't save it. */
 			if(is_within_bounds(user_x,user_y,next_btn.x,next_btn.y,next_btn.width,next_btn.height)){
 				if(!((0<accum)&&(accum<60))){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -1060,6 +1226,9 @@ void minute_change_loop(){
 				}
 			minute_block.selected = false;
 			}
+
+            /* If the back button is pressed, go back to the system
+             * settings loop without saving any changes */
 			if(is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				minute_block.selected = false;
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -1073,35 +1242,51 @@ void minute_change_loop(){
 	}
 }
 
-
+/**
+ * @brief	Allows user to edit the day of the RTC date
+ * @param	None
+ * @retval	None
+ */
 void hour_change_loop(){
 
-	/* Initialize touch */
+	/* Initialize touch and buttons that will be used for this page */
 	TS_StateTypeDef TS_State;
-
 	initialize_buttons();
 
+	/* Set the accumulator and minute index to 0. Set hour_block.selected
+	 * to true, and all other blocks.selected to false */
 	accum = 0;
 	hour_index = 0;
 	hour_block.selected = true;
 	month_block.selected = year_block.selected = minute_block.selected = day_block.selected = false;
+
+	/* Set the font, and clear the text from the year block
+	 * to show that the block is currently selected */
 	BSP_LCD_SetFont(&Font24);
 	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	draw_button(hour_block,true);
-	while(hour_block.selected){
-		BSP_TS_GetState(&TS_State);
 
+	/* While the hour block is selected */
+	while(hour_block.selected){
+
+		/* Get touch status */
+		BSP_TS_GetState(&TS_State);
 		if(TS_State.touchDetected){
+
+			/* Get x and y values of touch */
 			uint16_t user_x = TS_State.touchX[0];
 			uint16_t user_y = TS_State.touchY[0];
-			/* If clear button is pressed, clear the hour block, reset the month_index and accumulator */
+
+			/* If clear button is pressed, clear the hour block, reset the hour_index and accumulator */
 			if(numpad_poll_clr(pinpad, user_x, user_y)){
 				BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 				draw_button(hour_block,true);
 				hour_index = 0;
 				accum = 0;
 			}
-			/* If a number button is pressed, store the integer value, update the accumulator, and increment the index. */
+
+			/* If a number button is pressed, store and display the integer
+			 * value, update the accumulator, and increment the index. */
 			if(numpad_poll_num(pinpad,user_x,user_y,&num) && hour_index<2){
 				HAL_Delay(150);
 				if(hour_index == 0){
@@ -1111,7 +1296,6 @@ void hour_change_loop(){
 					BSP_LCD_DisplayStringAt(35,145,(uint8_t *)hour_buff,LEFT_MODE);
 				}
 				else if(hour_index == 1){
-					/* Save the value of the number pressed into the ten's place of the hour value */
 					hour_val_ones = num;
 					sprintf(hour_buff,"%i",num);
 					BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -1121,16 +1305,22 @@ void hour_change_loop(){
 				accum = (hour_val_tens*10 + hour_val_ones);
 
 			}
-			/* If the month block is selected, save new_hour in storage and enter month_change block */
+
+			/* If the month block is pressed while the hour block is selected,
+			 * save new_hour in storage and enter month_change loop */
 			else if(is_within_bounds(user_x,user_y,month_block.x,month_block.y,month_block.width,month_block.height)){
 
-				if(hour_index == 0){
+				/* If accumulator is 0, that means nothing has been edited so
+				 * go to the month change loop without saving anything */
+				if(accum == 0){
 					hour_changed = false;
 					hour_index = 0;
 					draw_date_time();
 					month_change_loop();
 				}
 
+				/* If the hour inputed by the user is greater than 12, tell the
+				 * user it is an invalid hour value and don't save that value */
 				else if(!(accum<13)){
 						BSP_LCD_Clear(LCD_COLOR_WHITE);
 						BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -1142,13 +1332,19 @@ void hour_change_loop(){
 						draw_date_time();
 						return;
 
-					}
+				}
+
+				/* If the hour inputed is valid, save and display that
+				 * number, then enter the month change loop */
 				else{
 					new_hour = accum;
 					hour_changed = true;
 					month_change_loop();
 				}
 			}
+
+			/* If the year block is pressed while the hour block is selected,
+			 * save new_hour in storage and enter year_change loop */
 			else if(is_within_bounds(user_x,user_y,year_block.x,year_block.y,year_block.width,year_block.height)){
 
 				if(accum == 0){
@@ -1178,7 +1374,8 @@ void hour_change_loop(){
 				}
 			}
 
-
+			/* If the day block is pressed while the hour block is selected,
+			 * save new_hour in storage and enter day_change loop */
             else if(is_within_bounds(user_x,user_y,day_block.x,day_block.y,day_block.width,day_block.height)){
 
 				if(accum == 0){
@@ -1208,6 +1405,8 @@ void hour_change_loop(){
 				}
 			}
 
+			/* If the minute block is pressed while the hour block is selected,
+			 * save new_hour in storage and enter minute_change loop */
 			else if(is_within_bounds(user_x,user_y,minute_block.x,minute_block.y,minute_block.width,minute_block.height)){
 
 				if(accum == 0){
@@ -1229,9 +1428,14 @@ void hour_change_loop(){
 				else{
 					new_hour = accum;
 					hour_changed = true;
-					day_change_loop();
+					minute_change_loop();
 				}
 			}
+
+			/* If the next button is pressed while the hour block is selected,
+			 * check if the value inputed is valid. If it is, save it and update
+			 * the time, then go back to the system settings page. Otherwise,
+			 * tell the user it is an invalid day value and don't save it. */
 			if(is_within_bounds(user_x,user_y,next_btn.x,next_btn.y,next_btn.width,next_btn.height)){
 				if(!((0<accum)&&(accum<13))){
 					BSP_LCD_Clear(LCD_COLOR_WHITE);
@@ -1252,12 +1456,15 @@ void hour_change_loop(){
 					new_hour = accum;
 					hour_changed = true;
 					update_time();
-					handle_page_loop = system_settings_loop;
 					HAL_Delay(1000);
+					handle_page_loop = system_settings_loop;
 					return;
 				}
 			hour_block.selected = false;
 			}
+
+            /* If the back button is pressed, go back to the system
+             * settings loop without saving any changes */
 			if(is_within_bounds(user_x,user_y,back_btn.x,back_btn.y,back_btn.width,back_btn.height)){
 				hour_block.selected = false;
 				BSP_LCD_Clear(LCD_COLOR_WHITE);
